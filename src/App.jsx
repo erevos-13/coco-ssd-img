@@ -4,7 +4,7 @@ import '@tensorflow/tfjs';
 import '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 import './App.css';
-import { drawFaceBox, startWebcam, clearCanvas } from './utisl';
+import { drawFaceBox, startWebcam, clearCanvas } from './utils';
 
 function App() {
   const [detector, setDetector] = useState(null);
@@ -14,12 +14,10 @@ function App() {
   const rafRef = useRef(null);
 
   const predict = useCallback(async () => {
-    // Check isRunning first
     if (!isRunning || !detector || !videoRef.current || !canvasRef.current) {
       return;
     }
 
-    // Make sure video has valid dimensions before proceeding
     if (
       !videoRef.current.srcObject ||
       videoRef.current.videoWidth === 0 ||
@@ -35,9 +33,8 @@ function App() {
     } catch (error) {
       console.error('Error during prediction:', error);
     }
-  }, [detector, videoRef, canvasRef, isRunning]); // Add isRunning to dependencies
+  }, [detector, videoRef, canvasRef, isRunning]);
 
-  // Initialize detector
   useEffect(() => {
     const createDetector = async () => {
       const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
@@ -47,7 +44,6 @@ function App() {
     createDetector();
   }, []);
 
-  // Clean up animation frame on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current) {
@@ -57,7 +53,6 @@ function App() {
     };
   }, []);
 
-  // Setup continuous prediction when isRunning changes
   useEffect(() => {
     let isMounted = true;
 
@@ -67,7 +62,6 @@ function App() {
 
         await predict();
 
-        // Only request next frame if still running and component is mounted
         if (isMounted && isRunning) {
           rafRef.current = requestAnimationFrame(runPrediction);
         }
@@ -85,14 +79,11 @@ function App() {
   }, [isRunning, predict]);
 
   const handleStartWebcam = async () => {
-    console.log('Starting webcam...');
     if (videoRef.current) {
       try {
         await startWebcam(videoRef.current);
 
-        // Make sure video is fully loaded before starting detection
         await new Promise(resolve => {
-          // Wait for video to have valid dimensions and be playing
           const checkVideoReady = () => {
             if (
               videoRef.current.readyState === 4 &&
@@ -107,14 +98,7 @@ function App() {
           checkVideoReady();
         });
 
-        console.log(
-          'Video ready with dimensions:',
-          videoRef.current.videoWidth,
-          'x',
-          videoRef.current.videoHeight
-        );
-
-        setIsRunning(true); // Start continuous prediction
+        setIsRunning(true);
       } catch (error) {
         console.error('Failed to start webcam:', error);
       }
@@ -122,25 +106,19 @@ function App() {
   };
 
   const handleStopWebcam = () => {
-    // First, stop the animation loop by setting isRunning to false
     setIsRunning(false);
 
-    // Immediately cancel any pending animation frame
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
 
-    // Add a small delay to ensure React state has updated
     setTimeout(() => {
-      // Then stop the video tracks
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
         videoRef.current.srcObject = null;
       }
-
-      // Clear the canvas
       if (canvasRef.current) {
         clearCanvas(canvasRef.current);
       }
@@ -148,7 +126,7 @@ function App() {
   };
 
   return (
-    <>
+    <div className="container-app">
       <section id="webcam-section">
         <section id="input">
           <h2>Face Detection with Webcam</h2>
@@ -166,7 +144,7 @@ function App() {
           )}
         </div>
       </section>
-    </>
+    </div>
   );
 }
 
